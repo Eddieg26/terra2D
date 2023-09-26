@@ -6,7 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ash = "0.37.3"
+winit = "0.28.6"
+vulkano = "0.33.0"
+vulkano-win = "0.33.0"
+vulkano-shaders = "0.33.0"
 image = "0.24.7"
 nalgebra-glm = "0.18.0"
-winit = "0.28.6"
+png = "0.17.10"
+
+[dependencies.uuid]
+version = "1.4.1"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+[build-dependencies]
+shaderc = "0.8"
