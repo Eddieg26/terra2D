@@ -1,19 +1,10 @@
+pub mod context;
+pub mod data;
+pub mod programs;
 pub mod renderer;
+pub mod resources;
 pub mod shader;
 pub mod util;
-pub mod vertex;
-// Create Instance
-// Create Surface
-// Create Physical Device
-// Create Logical Device
-// Create Queues
-// Create Command Pool
-// Create Create Command Buffers
-// Create Swapchain
-// Create RenderTargets
-// Create RenderPass
-// Create FrameBuffers
-// Create Pipelines??
 
 use crate::{
     camera::Camera,

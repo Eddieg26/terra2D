@@ -2,21 +2,13 @@ pub mod loader;
 pub mod renderer;
 pub use renderer::SpriteRenderer;
 
-use crate::terra::vertex::Vertex;
+use crate::terra::data::{SpriteData, Vertex};
 use image::EncodableLayout;
 
 #[derive(Clone)]
 pub struct Sprite {
     id: u64,
     path: Box<str>,
-}
-
-pub struct SpriteData {
-    pub vertices: [Vertex; 4],
-    pub indices: [u32; 6],
-    pub width: u32,
-    pub height: u32,
-    pub pixels: Vec<u8>,
 }
 
 impl Sprite {

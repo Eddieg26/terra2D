@@ -1,5 +1,7 @@
+use nalgebra_glm::Mat4;
 use std::sync::Arc;
 use vulkano::{
+    buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::allocator::StandardCommandBufferAllocator,
     descriptor_set::allocator::StandardDescriptorSetAllocator,
     device::{
@@ -9,7 +11,7 @@ use vulkano::{
     format::Format,
     image::{view::ImageView, ImageUsage, SwapchainImage},
     instance::{Instance, InstanceCreateInfo, InstanceExtensions},
-    memory::allocator::StandardMemoryAllocator,
+    memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator},
     pipeline::{
         graphics::{
             input_assembly::InputAssemblyState,
@@ -19,6 +21,7 @@ use vulkano::{
         GraphicsPipeline,
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
+    sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo},
     shader::{EntryPoint, ShaderModule},
     swapchain::{Surface, Swapchain, SwapchainCreateInfo},
     Version, VulkanLibrary,
@@ -29,7 +32,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use super::vertex::Vertex;
+use super::data::Vertex;
 
 pub fn create_library() -> Arc<VulkanLibrary> {
     VulkanLibrary::new().expect("Failed to create library.")
@@ -277,8 +280,80 @@ fn required_extensions(
     extensions
 }
 
-fn get_shader_entry_point(shader: &Arc<ShaderModule>) -> EntryPoint<'_> {
+pub fn get_shader_entry_point(shader: &Arc<ShaderModule>) -> EntryPoint<'_> {
     shader
         .entry_point("main")
         .expect("Failed to get vertex shader entry point.")
+}
+
+pub fn mat4_to_array(matrix: Mat4) -> [f32; 16] {
+    let mut mat = [0.0; 16];
+
+    let matrix = matrix.data.as_slice();
+    for index in 0..16 {
+        mat[index] = matrix[index];
+    }
+
+    mat
+}
+
+pub fn buffer_from_data<T>(
+    allocator: &StandardMemoryAllocator,
+    data: T,
+    buffer_usage: BufferUsage,
+    memory_usage: MemoryUsage,
+) -> Subbuffer<T>
+where
+    T: BufferContents + Send + Sync,
+{
+    Buffer::from_data(
+        allocator,
+        BufferCreateInfo {
+            usage: buffer_usage,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: memory_usage,
+            ..Default::default()
+        },
+        data,
+    )
+    .expect("Failed to create Buffer")
+}
+
+pub fn buffer_from_iter<I, T>(
+    allocator: &StandardMemoryAllocator,
+    iter: I,
+    buffer_usage: BufferUsage,
+    memory_usage: MemoryUsage,
+) -> Subbuffer<[T]>
+where
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    T: BufferContents + Send + Sync,
+{
+    Buffer::from_iter(
+        allocator,
+        BufferCreateInfo {
+            usage: buffer_usage,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            usage: memory_usage,
+            ..Default::default()
+        },
+        iter,
+    )
+    .expect("Failed to create buffer.")
+}
+
+pub fn create_sampler(device: &Arc<Device>) -> Arc<Sampler> {
+    let create_info = SamplerCreateInfo {
+        mag_filter: Filter::Linear,
+        min_filter: Filter::Linear,
+        address_mode: [SamplerAddressMode::Repeat; 3],
+        ..Default::default()
+    };
+
+    Sampler::new(device.clone(), create_info).expect("Failed to create sampler.")
 }

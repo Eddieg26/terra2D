@@ -31,7 +31,7 @@ fn main() {
         .get(&get_id("./src/assets/sprites/094 - Copy.png"))
     {
         let gengar = Rc::new(RefCell::new(SpriteRenderer::new(sprite)));
-        gengar.borrow_mut().color_mut().set(0.0, 1.0, 0.0);
+        gengar.borrow_mut().color_mut().set(1.0, 1.0, 1.0);
         terra.add_sprite_renderer(&gengar);
         terra.set_camera(&camera);
     }

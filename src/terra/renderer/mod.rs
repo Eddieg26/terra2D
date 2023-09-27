@@ -1,8 +1,8 @@
 use super::{shader::loader::ShaderLoader, util};
 use crate::{
     camera::Camera,
-    sprite::{renderer::Color, SpriteData, SpriteRenderer},
-    terra::vertex::Vertex,
+    sprite::SpriteRenderer,
+    terra::data::{Color, SpriteData, Vertex},
 };
 use nalgebra_glm::{self as glm, Mat4};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
@@ -19,7 +19,10 @@ use vulkano::{
     },
     device::{Device, Queue},
     format::Format,
-    image::{view::ImageView, ImageDimensions, ImmutableImage},
+    image::{
+        view::{ImageView, ImageViewCreateInfo},
+        ImageAspects, ImageDimensions, ImageSubresourceRange, ImmutableImage,
+    },
     memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator},
     pipeline::{graphics::viewport::Viewport, GraphicsPipeline, Pipeline, PipelineBindPoint},
     render_pass::{Framebuffer, RenderPass},
@@ -153,7 +156,6 @@ impl Renderer {
             self.sprites.insert(sprite_id, sprites);
         }
 
-        println!("HERE");
         let sprite = _renderer.sprite();
         if let None = self.resources.sprite.get(&sprite_id) {
             let resources = create_sprite_resources(
