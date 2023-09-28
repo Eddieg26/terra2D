@@ -2,14 +2,17 @@ use nalgebra_glm::Mat4;
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
-    command_buffer::allocator::StandardCommandBufferAllocator,
+    command_buffer::{
+        allocator::StandardCommandBufferAllocator, AutoCommandBufferBuilder, CommandBufferUsage,
+        PrimaryCommandBufferAbstract,
+    },
     descriptor_set::allocator::StandardDescriptorSetAllocator,
     device::{
         physical::{PhysicalDevice, PhysicalDeviceType},
         Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
     },
     format::Format,
-    image::{view::ImageView, ImageUsage, SwapchainImage},
+    image::{view::ImageView, ImageDimensions, ImageUsage, ImmutableImage, SwapchainImage},
     instance::{Instance, InstanceCreateInfo, InstanceExtensions},
     memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator},
     pipeline::{
@@ -356,4 +359,45 @@ pub fn create_sampler(device: &Arc<Device>) -> Arc<Sampler> {
     };
 
     Sampler::new(device.clone(), create_info).expect("Failed to create sampler.")
+}
+
+pub fn create_immutable_image<I, T>(
+    allocator: &StandardMemoryAllocator,
+    command_buffer_alloc: &Arc<StandardCommandBufferAllocator>,
+    queue: &Arc<Queue>,
+    iter: I,
+    dimensions: ImageDimensions,
+    format: Format,
+) -> Arc<ImageView<ImmutableImage>>
+where
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    T: BufferContents + Send + Sync,
+{
+    let mut builder = AutoCommandBufferBuilder::primary(
+        command_buffer_alloc,
+        queue.queue_family_index(),
+        CommandBufferUsage::OneTimeSubmit,
+    )
+    .unwrap();
+
+    let image = ImmutableImage::from_iter(
+        allocator,
+        iter,
+        dimensions,
+        vulkano::image::MipmapsCount::One,
+        format,
+        &mut builder,
+    )
+    .expect("Failed to create image for sprite");
+
+    let image_view =
+        ImageView::new_default(image).expect("Failed to create image view for sprite.");
+
+    let command_buffer = builder.build().expect("Failed to build command buffer.");
+    let _future = command_buffer
+        .execute(queue.clone())
+        .expect("Failed to submit command buffer.");
+
+    image_view
 }

@@ -1,6 +1,10 @@
 pub mod data;
 
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+    sync::Arc,
+};
 
 use vulkano::{
     buffer::{BufferUsage, Subbuffer},
@@ -20,12 +24,15 @@ use vulkano::{
     render_pass::Framebuffer,
 };
 
-use crate::terra::{
-    context::GraphicsContext,
-    data::Vertex,
-    programs::sprite::data::PerObject,
-    resources::{gpu::GpuResources, graphics::GraphicsResources},
-    util,
+use crate::{
+    camera::Camera,
+    terra::{
+        context::GraphicsContext,
+        data::{GlobalData, Vertex},
+        programs::sprite::data::PerObject,
+        resources::{gpu::GpuResources, graphics::GraphicsResources},
+        util,
+    },
 };
 
 pub struct SpriteRenderProgram {
@@ -59,6 +66,9 @@ impl SpriteRenderProgram {
     }
 
     pub fn draw(&mut self, framebuffer: &Arc<Framebuffer>) -> Option<PrimaryAutoCommandBuffer> {
+        let context = self.context.borrow();
+        let camera = context.camera().borrow();
+
         let mut builder = AutoCommandBufferBuilder::primary(
             self.gpu_resources.borrow().command_buffer_alloc(),
             self.gpu_resources.borrow().queue().queue_family_index(),
@@ -81,13 +91,7 @@ impl SpriteRenderProgram {
             .set_viewport(0, [self.gpu_resources.borrow().viewport().clone()])
             .bind_pipeline_graphics(self.pipeline.clone());
 
-        // TODO: Set Global buffer data to camera transform
-        // let global_data = get_global_data(camera.clone());
-        // *self
-        //     .resources
-        //     .global_buffer
-        //     .write()
-        //     .expect("Failed to write to global buffer") = global_data;
+        self.update_global_buffer(camera);
 
         builder.bind_descriptor_sets(
             PipelineBindPoint::Graphics,
@@ -105,12 +109,12 @@ impl SpriteRenderProgram {
                         .bind_vertex_buffers(0, resources.vertex_buffer().clone())
                         .bind_index_buffer(self.index_buffer.clone());
 
-                    builder.bind_descriptor_sets(
-                        PipelineBindPoint::Graphics,
-                        layout.clone(),
-                        1,
-                        [resources.set().clone()].into_iter().collect::<Vec<_>>(),
-                    );
+                    // builder.bind_descriptor_sets(
+                    //     PipelineBindPoint::Graphics,
+                    //     layout.clone(),
+                    //     1,
+                    //     [resources.set().clone()].into_iter().collect::<Vec<_>>(),
+                    // );
 
                     for renderer in renderers.iter() {
                         let model = util::mat4_to_array(renderer.borrow().transform().matrix());
@@ -130,6 +134,19 @@ impl SpriteRenderProgram {
             .expect("Failed to end render pass.");
 
         Some(builder.build().expect("Failed to build command buffer"))
+    }
+
+    fn update_global_buffer(&self, camera: Ref<Camera>) {
+        let ortho = camera.ortho();
+        let view = camera.transform().matrix();
+        let global_data = GlobalData::new(ortho, view);
+
+        *self
+            .gpu_resources
+            .borrow()
+            .global_buffer()
+            .write()
+            .expect("Failed to write to global buffer") = global_data;
     }
 }
 

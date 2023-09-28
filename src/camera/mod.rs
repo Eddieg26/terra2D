@@ -1,3 +1,5 @@
+use nalgebra_glm as glm;
+
 use crate::transform::Transform;
 
 #[derive(Clone, Copy)]
@@ -46,5 +48,12 @@ impl Camera {
 
     pub fn set_clipping_planes(&mut self, clipping_planes: ClippingPlanes) {
         self.clipping_planes = clipping_planes;
+    }
+
+    pub fn ortho(&self) -> glm::Mat4 {
+        let clipping = self.clipping_planes();
+        let size = self.size();
+
+        glm::ortho(-size, size, -size, size, clipping.near, clipping.far)
     }
 }

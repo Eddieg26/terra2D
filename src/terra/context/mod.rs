@@ -4,13 +4,14 @@ use std::{
     rc::Rc,
 };
 
-use crate::sprite::SpriteRenderer;
+use crate::{camera::Camera, sprite::SpriteRenderer};
 
 use super::resources::graphics::GraphicsResources;
 
 pub struct GraphicsContext {
     resources: Rc<RefCell<GraphicsResources>>,
     sprite_renderers: HashMap<u64, Vec<Rc<RefCell<SpriteRenderer>>>>,
+    camera: Rc<RefCell<Camera>>,
 }
 
 impl GraphicsContext {
@@ -18,7 +19,12 @@ impl GraphicsContext {
         GraphicsContext {
             sprite_renderers: HashMap::new(),
             resources: resources.clone(),
+            camera: Rc::new(RefCell::new(Camera::new())),
         }
+    }
+
+    pub fn camera(&self) -> &Rc<RefCell<Camera>> {
+        &self.camera
     }
 
     pub fn sprite_renderers(&self) -> Iter<'_, u64, Vec<Rc<RefCell<SpriteRenderer>>>> {
