@@ -1,19 +1,20 @@
 pub mod data;
 
-use std::{
-    cell::{Ref, RefCell},
-    rc::Rc,
-    sync::Arc,
+use crate::terra::{
+    context::GraphicsContext,
+    data::{GlobalData, Vertex},
+    programs::sprite::data::PerObject,
+    resources::{gpu::GpuResources, graphics::GraphicsResources},
+    util,
 };
-
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 use vulkano::{
-    buffer::{BufferUsage, Subbuffer},
     command_buffer::{
         AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
         RenderPassBeginInfo, SubpassContents,
     },
     descriptor_set::PersistentDescriptorSet,
-    memory::allocator::{MemoryUsage, StandardMemoryAllocator},
+    image::{view::ImageView, ImmutableImage},
     pipeline::{
         graphics::{
             input_assembly::InputAssemblyState, vertex_input::Vertex as BaseVertex,
@@ -24,24 +25,13 @@ use vulkano::{
     render_pass::Framebuffer,
 };
 
-use crate::{
-    camera::Camera,
-    terra::{
-        context::GraphicsContext,
-        data::{GlobalData, Vertex},
-        programs::sprite::data::PerObject,
-        resources::{gpu::GpuResources, graphics::GraphicsResources},
-        util,
-    },
-};
-
 pub struct SpriteRenderProgram {
     context: Rc<RefCell<GraphicsContext>>,
     graphics_resources: Rc<RefCell<GraphicsResources>>,
     gpu_resources: Rc<RefCell<GpuResources>>,
     pipeline: Arc<GraphicsPipeline>,
     global_descriptor_set: Arc<PersistentDescriptorSet>,
-    index_buffer: Subbuffer<[u32]>,
+    sprite_descriptor_sets: HashMap<u64, Arc<PersistentDescriptorSet>>,
 }
 
 impl SpriteRenderProgram {
@@ -53,7 +43,6 @@ impl SpriteRenderProgram {
         let pipeline = create_pipeline(gpu_resources);
         let layout = &pipeline.layout().set_layouts()[0];
         let global_descriptor_set = gpu_resources.borrow().create_global_descriptor_set(layout);
-        let index_buffer = create_index_buffer(gpu_resources.borrow().memory_alloc());
 
         SpriteRenderProgram {
             context: context.clone(),
@@ -61,14 +50,11 @@ impl SpriteRenderProgram {
             gpu_resources: gpu_resources.clone(),
             pipeline,
             global_descriptor_set,
-            index_buffer,
+            sprite_descriptor_sets: HashMap::new(),
         }
     }
 
     pub fn draw(&mut self, framebuffer: &Arc<Framebuffer>) -> Option<PrimaryAutoCommandBuffer> {
-        let context = self.context.borrow();
-        let camera = context.camera().borrow();
-
         let mut builder = AutoCommandBufferBuilder::primary(
             self.gpu_resources.borrow().command_buffer_alloc(),
             self.gpu_resources.borrow().queue().queue_family_index(),
@@ -91,7 +77,7 @@ impl SpriteRenderProgram {
             .set_viewport(0, [self.gpu_resources.borrow().viewport().clone()])
             .bind_pipeline_graphics(self.pipeline.clone());
 
-        self.update_global_buffer(camera);
+        self.update_global_buffer();
 
         builder.bind_descriptor_sets(
             PipelineBindPoint::Graphics,
@@ -102,19 +88,27 @@ impl SpriteRenderProgram {
                 .collect::<Vec<_>>(),
         );
 
-        for (id, renderers) in self.context.borrow().sprite_renderers() {
-            match self.graphics_resources.borrow().sprite(id) {
+        let graphics_resources = self.graphics_resources.clone();
+        let graphics_resources = graphics_resources.borrow();
+        let index_buffer = graphics_resources.sprite_index_buffer();
+
+        let context = self.context.clone();
+        let context = context.borrow();
+
+        for (id, renderers) in context.sprite_renderers() {
+            match graphics_resources.sprite(id) {
                 Some(resources) => {
                     builder
                         .bind_vertex_buffers(0, resources.vertex_buffer().clone())
-                        .bind_index_buffer(self.index_buffer.clone());
+                        .bind_index_buffer(index_buffer.clone());
 
-                    // builder.bind_descriptor_sets(
-                    //     PipelineBindPoint::Graphics,
-                    //     layout.clone(),
-                    //     1,
-                    //     [resources.set().clone()].into_iter().collect::<Vec<_>>(),
-                    // );
+                    let set = self.get_or_create_image_set(id, resources.image());
+                    builder.bind_descriptor_sets(
+                        PipelineBindPoint::Graphics,
+                        layout.clone(),
+                        1,
+                        [set].into_iter().collect::<Vec<_>>(),
+                    );
 
                     for renderer in renderers.iter() {
                         let model = util::mat4_to_array(renderer.borrow().transform().matrix());
@@ -136,7 +130,10 @@ impl SpriteRenderProgram {
         Some(builder.build().expect("Failed to build command buffer"))
     }
 
-    fn update_global_buffer(&self, camera: Ref<Camera>) {
+    fn update_global_buffer(&self) {
+        let context = self.context.borrow();
+        let camera = context.camera().borrow();
+
         let ortho = camera.ortho();
         let view = camera.transform().matrix();
         let global_data = GlobalData::new(ortho, view);
@@ -148,13 +145,33 @@ impl SpriteRenderProgram {
             .write()
             .expect("Failed to write to global buffer") = global_data;
     }
+
+    fn get_or_create_image_set(
+        &mut self,
+        id: &u64,
+        image: &Arc<ImageView<ImmutableImage>>,
+    ) -> Arc<PersistentDescriptorSet> {
+        if let Some(set) = self.sprite_descriptor_sets.get(id) {
+            set.clone()
+        } else {
+            let resources = self.gpu_resources.borrow();
+            let allocator = resources.descriptor_set_alloc();
+            let layout = &self.pipeline.layout().set_layouts()[1];
+            let sampler = resources.sampler();
+
+            let set = util::create_image_descriptor_set(allocator, layout, image, sampler);
+            let clone = set.clone();
+            self.sprite_descriptor_sets.insert(*id, set);
+            clone
+        }
+    }
 }
 
 fn create_pipeline(resources: &Rc<RefCell<GpuResources>>) -> Arc<GraphicsPipeline> {
-    let instance = resources.borrow();
-    let device = instance.device();
-    let render_pass = instance.render_pass();
-    let shaders = instance.shaders();
+    let resources = resources.borrow();
+    let device = resources.device();
+    let render_pass = resources.render_pass();
+    let shaders = resources.shaders();
 
     let vs = shaders.vertex("sprite").unwrap();
     let vs = util::get_shader_entry_point(vs);
@@ -171,15 +188,4 @@ fn create_pipeline(resources: &Rc<RefCell<GpuResources>>) -> Arc<GraphicsPipelin
         .input_assembly_state(InputAssemblyState::default())
         .build(device.clone())
         .expect("Failed to build graphics pipeline")
-}
-
-fn create_index_buffer(allocator: &StandardMemoryAllocator) -> Subbuffer<[u32]> {
-    let indices = [0, 1, 2, 1, 0, 3];
-
-    util::buffer_from_iter(
-        allocator,
-        indices.into_iter(),
-        BufferUsage::INDEX_BUFFER,
-        MemoryUsage::Upload,
-    )
 }

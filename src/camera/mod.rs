@@ -1,28 +1,24 @@
 use nalgebra_glm as glm;
 
-use crate::transform::Transform;
-
-#[derive(Clone, Copy)]
-pub struct ClippingPlanes {
-    pub near: f32,
-    pub far: f32,
-}
+use crate::{
+    terra::data::{ClippingPlanes, Viewport},
+    transform::Transform,
+};
 
 pub struct Camera {
     transform: Transform,
     size: f32,
     clipping_planes: ClippingPlanes,
+    viewport: Viewport,
 }
 
 impl Camera {
     pub fn new() -> Camera {
         Camera {
-            transform: Transform::new(),
             size: 5.0,
-            clipping_planes: ClippingPlanes {
-                near: -1.0,
-                far: 1.0,
-            },
+            transform: Transform::new(),
+            clipping_planes: ClippingPlanes::default(),
+            viewport: Viewport::default(),
         }
     }
 
@@ -42,12 +38,20 @@ impl Camera {
         &self.clipping_planes
     }
 
+    pub fn viewport(&self) -> &Viewport {
+        &self.viewport
+    }
+
     pub fn set_size(&mut self, size: f32) {
         self.size = size
     }
 
     pub fn set_clipping_planes(&mut self, clipping_planes: ClippingPlanes) {
         self.clipping_planes = clipping_planes;
+    }
+
+    pub fn set_viewport(&mut self, viewport: Viewport) {
+        self.viewport = viewport
     }
 
     pub fn ortho(&self) -> glm::Mat4 {

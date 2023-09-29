@@ -14,7 +14,7 @@ pub struct GraphicsContext {
     camera: Rc<RefCell<Camera>>,
 }
 
-impl GraphicsContext {
+impl<'a> GraphicsContext {
     pub fn new(resources: &Rc<RefCell<GraphicsResources>>) -> GraphicsContext {
         GraphicsContext {
             sprite_renderers: HashMap::new(),
@@ -43,7 +43,9 @@ impl GraphicsContext {
             self.sprite_renderers.insert(sprite.id(), renderers);
         }
 
-        self.resources.borrow_mut().add_sprite(sprite.load());
+        self.resources
+            .borrow_mut()
+            .add_sprite(sprite.id(), sprite.load());
     }
 
     pub fn remove_sprite_renderer(&mut self, renderer: &Rc<RefCell<SpriteRenderer>>) {

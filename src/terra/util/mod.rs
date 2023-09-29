@@ -6,7 +6,10 @@ use vulkano::{
         allocator::StandardCommandBufferAllocator, AutoCommandBufferBuilder, CommandBufferUsage,
         PrimaryCommandBufferAbstract,
     },
-    descriptor_set::allocator::StandardDescriptorSetAllocator,
+    descriptor_set::{
+        allocator::StandardDescriptorSetAllocator, layout::DescriptorSetLayout,
+        PersistentDescriptorSet, WriteDescriptorSet,
+    },
     device::{
         physical::{PhysicalDevice, PhysicalDeviceType},
         Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
@@ -400,4 +403,22 @@ where
         .expect("Failed to submit command buffer.");
 
     image_view
+}
+
+pub fn create_image_descriptor_set(
+    allocator: &StandardDescriptorSetAllocator,
+    layout: &Arc<DescriptorSetLayout>,
+    image: &Arc<ImageView<ImmutableImage>>,
+    sampler: &Arc<Sampler>,
+) -> Arc<PersistentDescriptorSet> {
+    PersistentDescriptorSet::new(
+        allocator,
+        layout.clone(),
+        [WriteDescriptorSet::image_view_sampler(
+            0,
+            image.clone(),
+            sampler.clone(),
+        )],
+    )
+    .expect("Failed to create image descriptor set")
 }

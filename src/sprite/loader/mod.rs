@@ -55,6 +55,7 @@ impl SpriteLoader {
         let mut hasher = DefaultHasher::new();
         filepath.hash(&mut hasher);
         let id = hasher.finish();
+        println!("FILEPATH: {}", filepath);
 
         let sprite = Sprite::new(
             id,

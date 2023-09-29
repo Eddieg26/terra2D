@@ -1,5 +1,6 @@
 use nalgebra_glm::Mat4;
 use vulkano::buffer::BufferContents;
+use vulkano::pipeline::graphics::viewport::Viewport as VkViewport;
 
 use super::util::mat4_to_array;
 
@@ -68,5 +69,60 @@ impl Color {
 
     pub fn get(&self) -> &[f32; 3] {
         &self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Viewport {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl Viewport {
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Viewport {
+        Viewport {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+}
+
+impl Into<VkViewport> for Viewport {
+    fn into(self) -> VkViewport {
+        VkViewport {
+            origin: [self.x, self.y],
+            dimensions: [self.width, self.height],
+            depth_range: 0.0..1.0,
+        }
+    }
+}
+
+impl Default for Viewport {
+    fn default() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            height: 1.0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ClippingPlanes {
+    pub near: f32,
+    pub far: f32,
+}
+
+impl Default for ClippingPlanes {
+    fn default() -> Self {
+        Self {
+            near: -1.0,
+            far: 1.0,
+        }
     }
 }

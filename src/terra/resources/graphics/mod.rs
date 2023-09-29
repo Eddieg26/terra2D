@@ -2,7 +2,6 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
 use vulkano::{
     buffer::{BufferUsage, Subbuffer},
-    command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage},
     format::Format,
     image::{view::ImageView, ImageDimensions, ImmutableImage},
     memory::allocator::MemoryUsage,
@@ -47,14 +46,12 @@ pub struct GraphicsResources {
 }
 
 impl GraphicsResources {
-    pub fn new(resources: Rc<RefCell<GpuResources>>) -> GraphicsResources {
-        let indices = [0, 1, 2, 1, 0, 3];
-
+    pub fn new(resources: &Rc<RefCell<GpuResources>>) -> GraphicsResources {
         let _resources = resources.borrow();
         let allocator = _resources.memory_alloc();
         let sprite_index_buffer = util::buffer_from_iter(
             allocator,
-            indices.into_iter(),
+            [0, 1, 2, 1, 0, 3].into_iter(),
             BufferUsage::INDEX_BUFFER,
             MemoryUsage::Upload,
         );
@@ -74,8 +71,7 @@ impl GraphicsResources {
         &self.sprite_index_buffer
     }
 
-    pub fn add_sprite(&mut self, data: SpriteData) {
-        // TODO: Create Vertex buffer and Image View
+    pub fn add_sprite(&mut self, id: u64, data: SpriteData) {
         let resources = self.resources.borrow();
         let allocator = resources.memory_alloc();
         let command_buffer_alloc = resources.command_buffer_alloc();
@@ -87,13 +83,6 @@ impl GraphicsResources {
             BufferUsage::VERTEX_BUFFER,
             MemoryUsage::Upload,
         );
-
-        let mut builder = AutoCommandBufferBuilder::primary(
-            command_buffer_alloc,
-            queue.queue_family_index(),
-            CommandBufferUsage::OneTimeSubmit,
-        )
-        .unwrap();
 
         let image = util::create_immutable_image(
             allocator,
@@ -108,7 +97,8 @@ impl GraphicsResources {
             Format::R8G8B8A8_SRGB,
         );
 
-        todo!()
+        self.sprites
+            .insert(id, SpriteResources::new(image, vertex_buffer));
     }
 
     pub fn remove_sprite(&mut self, id: &u64) {
