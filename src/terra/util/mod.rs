@@ -29,7 +29,7 @@ use vulkano::{
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
     sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo},
     shader::{EntryPoint, ShaderModule},
-    swapchain::{Surface, Swapchain, SwapchainCreateInfo},
+    swapchain::{ColorSpace, Surface, Swapchain, SwapchainCreateInfo},
     Version, VulkanLibrary,
 };
 use vulkano_win::VkSurfaceBuild;
@@ -129,9 +129,14 @@ pub fn create_swap_chain(
 
     let window = get_surface_window(surface);
 
+    let (image_format, _) = image_formats
+        .iter()
+        .find(|f| f.0 == Format::B8G8R8A8_SRGB && f.1 == ColorSpace::SrgbNonLinear)
+        .unwrap_or(&image_formats[0]);
+
     let create_info = SwapchainCreateInfo {
         min_image_count: surface_capabilities.min_image_count,
-        image_format: Some(image_formats[0].0),
+        image_format: Some(*image_format),
         image_extent: window.inner_size().into(),
         image_usage: ImageUsage::COLOR_ATTACHMENT,
         composite_alpha: surface_capabilities

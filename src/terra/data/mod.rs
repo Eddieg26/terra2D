@@ -49,6 +49,10 @@ impl Color {
         Color([1.0; 3])
     }
 
+    pub fn black() -> Color {
+        Color([0.0; 3])
+    }
+
     pub fn set_red(&mut self, value: f32) {
         self.0[0] = value;
     }

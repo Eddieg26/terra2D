@@ -1,7 +1,6 @@
 pub mod context;
 pub mod data;
 pub mod programs;
-pub mod renderer;
 pub mod resources;
 pub mod shader;
 pub mod util;

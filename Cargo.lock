@@ -1297,7 +1297,6 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nalgebra-glm",
- "png",
  "shaderc",
  "uuid",
  "vulkano",

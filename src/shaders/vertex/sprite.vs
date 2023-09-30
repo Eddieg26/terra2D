@@ -25,7 +25,6 @@ void main()
     TexCoords = vertex.zw;
     Color = object.color;
     gl_Position = camera.projection * camera.view * object.model * vec4(vertex.xy, 0.0, 1.0);
-    gl_Position = vec4(vertex.xy, 0.0, 1.0);
     // gl_position is used to store the position of the current vertex
     // the value of this variable is used in proceeding pipeline stages
 }

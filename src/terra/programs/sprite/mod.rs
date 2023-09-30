@@ -63,7 +63,12 @@ impl SpriteRenderProgram {
         .expect("Failed to allocate command buffer.");
 
         let layout = self.pipeline.layout().clone();
-        let clear_values = vec![Some([0.08, 0.08, 0.08, 1.0].into())];
+        let context = self.context.clone();
+        let context = context.borrow();
+        let camera = context.camera().borrow();
+        let clear = camera.clear().get();
+
+        let clear_values = vec![Some([clear[0], clear[1], clear[2], 1.0].into())];
         let render_pass_begin_info = RenderPassBeginInfo {
             clear_values,
             ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
@@ -131,16 +136,19 @@ impl SpriteRenderProgram {
     }
 
     fn update_global_buffer(&self) {
+        let resources = self.gpu_resources.clone();
+        let resources = resources.borrow();
+
         let context = self.context.borrow();
         let camera = context.camera().borrow();
 
-        let ortho = camera.ortho();
+        let extent = resources.swapchain().image_extent();
+        let aspect = (extent[0] as f32) / (extent[1] as f32);
+        let ortho = camera.ortho(aspect);
         let view = camera.transform().matrix();
         let global_data = GlobalData::new(ortho, view);
 
-        *self
-            .gpu_resources
-            .borrow()
+        *resources
             .global_buffer()
             .write()
             .expect("Failed to write to global buffer") = global_data;

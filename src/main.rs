@@ -42,6 +42,8 @@ fn main() {
                 _ => (),
             },
 
+            Event::RedrawRequested(window_id) if window_id == id => {}
+
             Event::RedrawEventsCleared => terra.render(),
 
             _ => (),
