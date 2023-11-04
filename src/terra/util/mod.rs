@@ -15,7 +15,10 @@ use vulkano::{
         Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
     },
     format::Format,
-    image::{view::ImageView, ImageDimensions, ImageUsage, ImmutableImage, SwapchainImage},
+    image::{
+        view::{ImageView, ImageViewCreateInfo},
+        ImageDimensions, ImageSubresourceRange, ImageUsage, ImmutableImage, SwapchainImage,
+    },
     instance::{Instance, InstanceCreateInfo, InstanceExtensions},
     memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator},
     pipeline::{
@@ -306,6 +309,17 @@ pub fn mat4_to_array(matrix: Mat4) -> [f32; 16] {
     }
 
     mat
+}
+
+pub fn create_swapchain_image_views(
+    render_targets: &Vec<Arc<SwapchainImage>>,
+) -> Vec<Arc<ImageView<SwapchainImage>>> {
+    render_targets
+        .iter()
+        .map(|target| {
+            ImageView::new_default(target.clone()).expect("Failed to create swapchain image")
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn buffer_from_data<T>(

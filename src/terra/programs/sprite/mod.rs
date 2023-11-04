@@ -68,6 +68,8 @@ impl SpriteRenderProgram {
         let camera = context.camera().borrow();
         let clear = camera.clear().get();
 
+        let values = [clear[0], clear[1], clear[2], 1.0];
+
         let clear_values = vec![Some([clear[0], clear[1], clear[2], 1.0].into())];
         let render_pass_begin_info = RenderPassBeginInfo {
             clear_values,

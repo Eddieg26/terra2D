@@ -8,19 +8,21 @@ use super::Sprite;
 
 pub struct SpriteRenderer {
     id: u64,
+    name: Box<str>,
     transform: Transform,
     sprite: Sprite,
     color: Color,
 }
 
 impl SpriteRenderer {
-    pub fn new(sprite: Sprite) -> SpriteRenderer {
+    pub fn new(sprite: Sprite, name: &str) -> SpriteRenderer {
         let mut hasher = DefaultHasher::new();
         uuid::Uuid::new_v4().to_string().hash(&mut hasher);
 
         SpriteRenderer {
             id: hasher.finish(),
             transform: Transform::new(),
+            name: name.into(),
             sprite,
             color: Color::new(),
         }
@@ -28,6 +30,10 @@ impl SpriteRenderer {
 
     pub fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn name(&self) -> &Box<str> {
+        &self.name
     }
 
     pub fn sprite(&self) -> &Sprite {
