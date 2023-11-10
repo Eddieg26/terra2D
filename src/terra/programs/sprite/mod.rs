@@ -10,8 +10,8 @@ use crate::terra::{
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 use vulkano::{
     command_buffer::{
-        AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer,
-        RenderPassBeginInfo, SubpassContents,
+        AutoCommandBufferBuilder, ClearDepthStencilImageInfo, CommandBufferUsage,
+        PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassContents,
     },
     descriptor_set::PersistentDescriptorSet,
     image::{view::ImageView, ImmutableImage},
